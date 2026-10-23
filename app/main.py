@@ -7,13 +7,16 @@ separate service at its own Streamable HTTP endpoint.
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from datetime import datetime
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel
 
 from app.config import get_settings
+from app.dashboard import build_payload, render_dashboard_html, render_index
 from app.eventloop import use_selector_event_loop_on_windows
+from app.report_docx import build_report_docx
 from app.runtime import Runtime
 from app.service import ConcurrencyError, NotResumableError
 from app.views import _to_jsonable, build_run_detail
@@ -51,6 +54,38 @@ def _svc(app: FastAPI):
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index() -> HTMLResponse:
+    rt = app.state.runtime
+    recent = await rt.repos.list_runs(15)
+    return HTMLResponse(render_index(recent, rt.settings.data_mode, rt.settings.claude_model))
+
+
+@app.get("/analyses/{run_id}/dashboard", response_class=HTMLResponse)
+async def dashboard(run_id: str) -> HTMLResponse:
+    rt = app.state.runtime
+    payload = await build_payload(rt.repos, rt.settings, rt.service.graph, run_id)
+    if payload is None:
+        raise HTTPException(status_code=404, detail="unknown run")
+    return HTMLResponse(render_dashboard_html(payload, run_id))
+
+
+@app.get("/analyses/{run_id}/report.docx")
+async def report_docx(run_id: str, request: Request) -> Response:
+    rt = app.state.runtime
+    payload = await build_payload(rt.repos, rt.settings, rt.service.graph, run_id)
+    if payload is None:
+        raise HTTPException(status_code=404, detail="unknown run")
+    dash_url = str(request.base_url).rstrip("/") + f"/analyses/{run_id}/dashboard"
+    data = build_report_docx(payload, dashboard_url=dash_url,
+                             generated_on=datetime.now().strftime("%Y-%m-%d %H:%M"))
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{payload["symbol"]}_analysis.docx"'},
+    )
 
 
 @app.post("/analyses")
@@ -126,7 +161,7 @@ async def get_run_html(run_id: str) -> HTMLResponse:
 
 
 if __name__ == "__main__":
-    import uvicorn
+    from app.eventloop import run_uvicorn
 
     s = get_settings()
-    uvicorn.run("app.main:app", host=s.api_host, port=s.api_port, reload=False)
+    run_uvicorn("app.main:app", s.api_host, s.api_port)

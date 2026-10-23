@@ -97,7 +97,32 @@ Key settings (full list in [.env.example](.env.example)):
 
 > `.env.example` uses Docker hostnames (`postgres`, `mcp-server`). To run pieces **outside** Docker, override `DATABASE_URL` to `...@localhost:5432/...` and `MCP_SERVER_URL` to `http://localhost:8001/mcp`.
 
-## 5. Run with Docker Compose (recommended)
+## 5. Run the web app (enter a ticker in your browser)
+
+The simplest way to use it. Requires your local PostgreSQL running and `.env`
+filled in (`ANTHROPIC_API_KEY` + `DATABASE_URL`). Then:
+
+- **Windows:** double-click **`run.bat`**, or run `python launch.py`.
+- **macOS/Linux:** `python launch.py`
+
+This starts the MCP server and the web app in **live (real-time) mode** and opens
+`http://localhost:8000`. Type a stock symbol (e.g. `MS`, `AAPL`, `NVDA`) and
+submit; after ~20–40s you land on an **interactive dashboard served by the app
+itself** — KPI cards, a live price chart, the analysis and risks — with a
+**Download Word report** button. It is a normal `localhost` page (not a
+claude.ai artifact link), so it opens in any browser.
+
+App pages:
+
+| Path | What |
+|---|---|
+| `/` | entry form + recent analyses |
+| `/analyses/{id}/dashboard` | interactive dashboard (served by the app) |
+| `/analyses/{id}/report.docx` | the Word report (download) |
+
+The JSON endpoints in §14 still work alongside these.
+
+## 6. Run with Docker Compose
 
 ```bash
 docker compose up --build
