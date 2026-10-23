@@ -102,7 +102,9 @@ Key settings (full list in [.env.example](.env.example)):
 The simplest way to use it. Requires your local PostgreSQL running and `.env`
 filled in (`ANTHROPIC_API_KEY` + `DATABASE_URL`). Then:
 
-- **Windows:** double-click **`run.bat`**, or run `python launch.py`.
+- **Windows (File Explorer):** double-click **`run.bat`**.
+- **Windows (PowerShell):** `.\run.bat` (PowerShell needs the leading `.\`) or `.\run.ps1`.
+- **Any OS, with the venv active:** `python launch.py`
 - **macOS/Linux:** `python launch.py`
 
 This starts the MCP server and the web app in **live (real-time) mode** and opens
