@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Environment — never commit real secrets (see .env.example for the template)
+.env
+.env.*
+!.env.example
+
+# Dependency lock produced at install time
+requirements.lock
+
+# Local data / logs
+*.log
+outputs/

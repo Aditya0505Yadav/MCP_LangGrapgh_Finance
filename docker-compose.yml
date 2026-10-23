@@ -1,0 +1,59 @@
+# Local topology: PostgreSQL (one service, persistent named volume), the real MCP
+# server, and the application. The app talks to the MCP server over actual
+# Streamable HTTP (visible in tracing). Admin access is bound locally.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: finance
+      POSTGRES_PASSWORD: finance
+      POSTGRES_DB: finance_demo
+    ports:
+      - "127.0.0.1:5432:5432"   # bind locally only
+    volumes:
+      - finance_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finance -d finance_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mcp-server:
+    build: .
+    command: ["python", "-m", "mcp_server.server"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://finance:finance@postgres:5432/finance_demo
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8001:8001"
+    healthcheck:
+      test: ["CMD", "python", "/code/scripts/healthcheck.py", "8001"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    command: ["python", "-m", "app.main"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://finance:finance@postgres:5432/finance_demo
+      MCP_SERVER_URL: http://mcp-server:8001/mcp
+      API_HOST: 0.0.0.0
+      API_PORT: "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mcp-server:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+
+volumes:
+  finance_pgdata:

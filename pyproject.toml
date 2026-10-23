@@ -1,0 +1,17 @@
+[project]
+name = "finance-analysis-assistant"
+version = "0.1.0"
+description = "Multi-agent finance analysis workflow (LangGraph + real MCP + Claude + PostgreSQL)"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+# Run pytest from the repo root; make `app` and `mcp_server` importable.
+pythonpath = ["."]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "integration: requires a running PostgreSQL and MCP server (deselect with -m 'not integration')",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]

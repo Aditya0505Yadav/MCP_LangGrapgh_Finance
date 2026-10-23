@@ -1,0 +1,24 @@
+{
+  "symbol": "MSFT",
+  "currency": "USD",
+  "adjustment_basis": "adjusted_close",
+  "data_as_of": "2023-12-29",
+  "source_references": [
+    "FIXTURE: synthetic monthly sample of daily closes for 2023 — NOT live market data"
+  ],
+  "observations": [
+    {"date": "2023-01-03", "close": 239.58, "adjusted_close": 236.90},
+    {"date": "2023-02-01", "close": 247.81, "adjusted_close": 245.04},
+    {"date": "2023-03-01", "close": 246.27, "adjusted_close": 243.52},
+    {"date": "2023-04-03", "close": 287.23, "adjusted_close": 284.02},
+    {"date": "2023-05-01", "close": 305.56, "adjusted_close": 302.15},
+    {"date": "2023-06-01", "close": 332.58, "adjusted_close": 329.87},
+    {"date": "2023-07-03", "close": 337.99, "adjusted_close": 335.24},
+    {"date": "2023-08-01", "close": 336.34, "adjusted_close": 333.60},
+    {"date": "2023-09-01", "close": 328.66, "adjusted_close": 326.33},
+    {"date": "2023-10-02", "close": 321.80, "adjusted_close": 319.52},
+    {"date": "2023-11-01", "close": 346.07, "adjusted_close": 343.62},
+    {"date": "2023-12-01", "close": 374.51, "adjusted_close": 372.42},
+    {"date": "2023-12-29", "close": 376.04, "adjusted_close": 373.94}
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "symbol": "AAPL",
+  "company_name": "Apple Inc. (SAMPLE DATA)",
+  "currency": "USD",
+  "units": "USD",
+  "periods": {
+    "FY2023": {
+      "period_type": "annual",
+      "fiscal_year": 2023,
+      "period_start": "2022-10-01",
+      "period_end": "2023-09-30",
+      "revenue": 383285000000,
+      "net_income": 96995000000,
+      "total_debt": 111088000000,
+      "filing_date": "2023-11-03",
+      "sources": ["FIXTURE: synthetic annual figures labeled SAMPLE — not audited, not live"]
+    },
+    "FY2022": {
+      "period_type": "annual",
+      "fiscal_year": 2022,
+      "period_start": "2021-10-01",
+      "period_end": "2022-09-30",
+      "revenue": 394328000000,
+      "net_income": 99803000000,
+      "total_debt": 120069000000,
+      "filing_date": "2022-10-28",
+      "sources": ["FIXTURE: synthetic annual figures labeled SAMPLE — not audited, not live"]
+    }
+  }
+}

@@ -1,0 +1,33 @@
+# Finance analysis assistant — pinned dependencies
+# Verified against PyPI on 2026-10-22. Core integration libs are pinned exactly;
+# supporting libs use compatible-release ranges and are frozen by the lockfile
+# produced at install time (see README "Install").
+
+# --- LLM: Anthropic Claude ---
+anthropic==2.1.0            # AsyncAnthropic, messages.create, usage token categories
+
+# --- MCP transport (real Streamable HTTP, server + client) ---
+fastmcp==4.1.3             # FastMCP server + Client over Streamable HTTP; bundles the `mcp` SDK
+
+# --- Workflow orchestration + durable checkpoints ---
+langgraph==1.2.16
+langgraph-checkpoint-postgres==3.2.0   # AsyncPostgresSaver; pulls langgraph-checkpoint>=4.3,<5 + psycopg>=3.2
+
+# --- PostgreSQL driver + async pool (app observability + checkpointer) ---
+psycopg[binary]>=3.2,<4
+psycopg-pool>=3.2,<4
+
+# --- Application API + validation ---
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+pydantic>=2.8,<3
+pydantic-settings>=2.4,<3
+
+# --- Supporting ---
+httpx>=0.27,<1             # live stock provider (Stooq); FastMCP uses httpx too
+anyio>=4,<5
+tzdata>=2024.1            # zoneinfo data (required on Windows for America/Chicago)
+
+# --- Tests ---
+pytest>=8,<9
+pytest-asyncio>=0.24,<1

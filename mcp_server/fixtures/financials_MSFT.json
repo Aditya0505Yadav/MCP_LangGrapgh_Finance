@@ -1,0 +1,30 @@
+{
+  "symbol": "MSFT",
+  "company_name": "Microsoft Corporation (SAMPLE DATA)",
+  "currency": "USD",
+  "units": "USD",
+  "periods": {
+    "FY2023": {
+      "period_type": "annual",
+      "fiscal_year": 2023,
+      "period_start": "2022-07-01",
+      "period_end": "2023-06-30",
+      "revenue": 211915000000,
+      "net_income": 72361000000,
+      "total_debt": null,
+      "filing_date": "2023-07-27",
+      "sources": ["FIXTURE: synthetic annual figures labeled SAMPLE — not audited, not live; debt intentionally omitted"]
+    },
+    "FY2022": {
+      "period_type": "annual",
+      "fiscal_year": 2022,
+      "period_start": "2021-07-01",
+      "period_end": "2022-06-30",
+      "revenue": 198270000000,
+      "net_income": 72738000000,
+      "total_debt": 61270000000,
+      "filing_date": "2022-07-28",
+      "sources": ["FIXTURE: synthetic annual figures labeled SAMPLE — not audited, not live"]
+    }
+  }
+}

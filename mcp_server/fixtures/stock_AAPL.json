@@ -1,0 +1,24 @@
+{
+  "symbol": "AAPL",
+  "currency": "USD",
+  "adjustment_basis": "adjusted_close",
+  "data_as_of": "2023-12-29",
+  "source_references": [
+    "FIXTURE: synthetic monthly sample of daily closes for 2023 — NOT live market data"
+  ],
+  "observations": [
+    {"date": "2023-01-03", "close": 125.07, "adjusted_close": 124.24},
+    {"date": "2023-02-01", "close": 145.43, "adjusted_close": 144.46},
+    {"date": "2023-03-01", "close": 145.31, "adjusted_close": 144.34},
+    {"date": "2023-04-03", "close": 166.17, "adjusted_close": 165.06},
+    {"date": "2023-05-01", "close": 169.59, "adjusted_close": 168.72},
+    {"date": "2023-06-01", "close": 180.09, "adjusted_close": 179.17},
+    {"date": "2023-07-03", "close": 192.46, "adjusted_close": 191.48},
+    {"date": "2023-08-01", "close": 195.61, "adjusted_close": 194.61},
+    {"date": "2023-09-01", "close": 189.46, "adjusted_close": 188.57},
+    {"date": "2023-10-02", "close": 173.75, "adjusted_close": 172.94},
+    {"date": "2023-11-01", "close": 173.97, "adjusted_close": 173.15},
+    {"date": "2023-12-01", "close": 191.24, "adjusted_close": 190.69},
+    {"date": "2023-12-29", "close": 192.53, "adjusted_close": 191.97}
+  ]
+}
