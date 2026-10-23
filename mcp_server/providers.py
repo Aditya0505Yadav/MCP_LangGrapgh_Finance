@@ -14,13 +14,11 @@ Live data sources:
 
 from __future__ import annotations
 
-import csv
-import io
 import json
 from datetime import date
 from pathlib import Path
 
-import httpx
+import anyio
 
 from app.config import Settings
 from mcp_server import contracts as c
@@ -114,51 +112,69 @@ class ProviderAdapter:
         )
 
     async def _live_stock(self, sym: str, start: date, end: date) -> c.StockDataResult:
-        url = f"https://stooq.com/q/d/l/?s={sym.lower()}.us&i=d"
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.get(url)
-        except httpx.TimeoutException as exc:
-            return c.stock_error(sym, "provider_timeout", f"stooq timeout: {exc}", "live")
-        except httpx.HTTPError as exc:
-            return c.stock_error(sym, "provider_unavailable", f"stooq error: {exc}", "live")
-        if resp.status_code != 200:
-            return c.stock_error(
-                sym, "provider_unavailable",
-                f"stooq HTTP {resp.status_code}", "live",
-            )
-        text = resp.text.strip()
-        if not text or text.lower().startswith("no data") or "N/D" in text[:64]:
-            return c.stock_error(sym, "invalid_symbol", "stooq returned no series", "live")
+        """Real-time daily history + current quote from Yahoo Finance (yfinance).
 
-        observations: list[c.StockObservation] = []
-        reader = csv.DictReader(io.StringIO(text))
-        for row in reader:
-            raw_date = row.get("Date")
-            raw_close = row.get("Close")
-            if not raw_date or not raw_close:
-                continue
-            try:
-                d = date.fromisoformat(raw_date)
-                close = float(raw_close)
-            except ValueError:
-                continue
-            if start <= d <= end:
-                observations.append(c.StockObservation(date=raw_date, close=close))
-        if not observations:
-            return c.StockDataResult(
-                status=c.STATUS_NO_DATA, symbol=sym, currency="USD",
-                adjustment_basis="close", observations=[],
-                source_references=[f"Stooq daily CSV: {url}"],
-                data_mode="live", notes="No live observations in the requested range.",
+        yfinance is blocking, so it runs in a worker thread (never on the async
+        event loop).
+        """
+        from datetime import timedelta
+
+        def _fetch():
+            import yfinance as yf
+            ticker = yf.Ticker(sym)
+            hist = ticker.history(
+                start=start.isoformat(),
+                end=(end + timedelta(days=1)).isoformat(),
+                auto_adjust=False,
             )
+            try:
+                fast = ticker.fast_info
+            except Exception:
+                fast = None
+            return hist, fast
+
+        try:
+            hist, fast = await anyio.to_thread.run_sync(_fetch)
+        except Exception as exc:  # noqa: BLE001
+            return c.stock_error(sym, "provider_unavailable",
+                                 f"yfinance error: {exc}", "live")
+
+        if hist is None or len(hist) == 0:
+            return c.StockDataResult(
+                status=c.STATUS_NO_DATA, symbol=sym, data_mode="live",
+                source_references=["Yahoo Finance via yfinance"],
+                notes="No live observations in the requested range.",
+            )
+
+        has_adj = "Adj Close" in hist.columns
+        observations: list[c.StockObservation] = []
+        for idx, row in hist.iterrows():
+            adj = float(row["Adj Close"]) if has_adj else None
+            observations.append(c.StockObservation(
+                date=idx.date().isoformat(),
+                close=round(float(row["Close"]), 4),
+                adjusted_close=round(adj, 4) if adj is not None else None,
+            ))
         observations = observations[: c.MAX_OBSERVATIONS]
+
+        def num(attr):
+            try:
+                return float(getattr(fast, attr))
+            except Exception:
+                return None
+
+        currency = getattr(fast, "currency", None) or "USD"
         return c.StockDataResult(
-            status=c.STATUS_OK, symbol=sym, currency="USD",
-            adjustment_basis="close", observations=observations,
-            source_references=[f"Stooq daily CSV: {url}"],
+            status=c.STATUS_OK, symbol=sym, currency=currency,
+            adjustment_basis="adjusted_close" if has_adj else "close",
+            observations=observations,
+            source_references=["Yahoo Finance via yfinance (real-time quote + daily history)"],
             data_as_of=observations[-1].date, data_mode="live",
-            notes="Live daily close from Stooq (raw close, not split/dividend adjusted).",
+            current_price=num("last_price"), previous_close=num("previous_close"),
+            fifty_two_week_high=num("year_high"), fifty_two_week_low=num("year_low"),
+            market_time=c.utcnow_iso(),
+            notes="Live Yahoo Finance data. Quotes may be ~15 min delayed; the latest "
+                  "point may be an in-progress session close.",
         )
 
     # ------------------------------------------------------------ financials
@@ -183,7 +199,7 @@ class ProviderAdapter:
 
         if mode == "fixture":
             return self._fixture_financials(sym, reporting_period, period_type)
-        return self._live_financials(sym, reporting_period, period_type)
+        return await self._live_financials(sym, reporting_period, period_type)
 
     def _fixture_financials(
         self, sym: str, reporting_period: str, period_type: str
@@ -229,13 +245,66 @@ class ProviderAdapter:
             ),
         )
 
-    def _live_financials(
+    async def _live_financials(
         self, sym: str, reporting_period: str, period_type: str
     ) -> c.FinancialsResult:
-        # Honest: no free fundamentals provider is wired. We do not fabricate.
-        return c.financials_error(
-            sym, "provider_unavailable",
-            "live financials provider is not configured; set up a licensed provider "
-            "and wire it here. The demo uses DATA_MODE=fixture for financials.",
-            "live",
+        """Real-time fundamentals from Yahoo Finance (yfinance), off the event loop."""
+
+        def _fetch():
+            import yfinance as yf
+            ticker = yf.Ticker(sym)
+            inc = ticker.income_stmt
+            bs = ticker.balance_sheet
+            try:
+                info = ticker.info
+            except Exception:
+                info = {}
+            return inc, bs, info
+
+        try:
+            inc, bs, info = await anyio.to_thread.run_sync(_fetch)
+        except Exception as exc:  # noqa: BLE001
+            return c.financials_error(sym, "provider_unavailable",
+                                      f"yfinance error: {exc}", "live")
+
+        def pick(df, *names):
+            try:
+                for n in names:
+                    if n in df.index:
+                        s = df.loc[n].dropna()
+                        if len(s):
+                            return float(s.iloc[0]), s.index[0]
+            except Exception:
+                pass
+            return None, None
+
+        revenue, rev_dt = pick(inc, "Total Revenue", "Operating Revenue")
+        net_income, _ = pick(inc, "Net Income", "Net Income Common Stockholders")
+        total_debt, _ = pick(bs, "Total Debt", "Long Term Debt")
+        if revenue is None and net_income is None:
+            return c.financials_error(sym, "no_data",
+                                      "Yahoo returned no fundamentals", "live")
+
+        fiscal_year = period_end = None
+        if rev_dt is not None:
+            try:
+                period_end = rev_dt.date().isoformat()
+                fiscal_year = rev_dt.year
+            except Exception:
+                pass
+
+        info = info if isinstance(info, dict) else {}
+        return c.FinancialsResult(
+            status=c.STATUS_OK, symbol=sym,
+            company_name=info.get("longName") or sym, period_type="annual",
+            reporting_period=f"FY{fiscal_year}" if fiscal_year else reporting_period,
+            fiscal_year=fiscal_year, period_end=period_end,
+            revenue=revenue, net_income=net_income, total_debt=total_debt,
+            units="USD", currency="USD",
+            market_cap=info.get("marketCap"), pe_ratio=info.get("trailingPE"),
+            sources=["Yahoo Finance via yfinance (income statement, balance sheet, key stats)"],
+            data_mode="live",
+            notes="Live Yahoo Finance fundamentals (most recent annual period)."
+                  + (" Total debt for financial-sector firms includes large borrowings."
+                     if total_debt else ""),
         )

@@ -66,6 +66,12 @@ class StockDataResult(BaseModel):
     retrieved_at: str = Field(default_factory=utcnow_iso)
     data_as_of: str | None = None
     data_mode: str = "fixture"
+    # Optional real-time snapshot fields (populated in live mode; null for fixtures).
+    current_price: float | None = None
+    previous_close: float | None = None
+    fifty_two_week_high: float | None = None
+    fifty_two_week_low: float | None = None
+    market_time: str | None = None
     notes: str | None = None
 
 
@@ -113,6 +119,8 @@ class FinancialsResult(BaseModel):
     total_debt: float | None = None  # null means "not available", NOT zero debt
     units: str | None = None         # e.g. "USD", values are absolute
     currency: str | None = None
+    market_cap: float | None = None  # optional real-time quote stats (live mode)
+    pe_ratio: float | None = None
     filing_date: str | None = None
     sources: list[str] = Field(default_factory=list)
     retrieved_at: str = Field(default_factory=utcnow_iso)

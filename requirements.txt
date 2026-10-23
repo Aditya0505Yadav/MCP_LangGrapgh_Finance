@@ -24,8 +24,9 @@ pydantic>=2.8,<3
 pydantic-settings>=2.4,<3
 
 # --- Supporting ---
-httpx>=0.27,<1             # live stock provider (Stooq); FastMCP uses httpx too
+httpx>=0.27,<1             # FastMCP uses httpx
 anyio>=4,<5
+yfinance>=0.2.40          # real-time stock + fundamentals (live data mode)
 tzdata>=2024.1            # zoneinfo data (required on Windows for America/Chicago)
 
 # --- Tests ---
